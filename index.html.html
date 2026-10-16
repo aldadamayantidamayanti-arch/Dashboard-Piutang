@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dashboard Sistem Informasi Piutang PT Semen Tonasa</title>
+<style>
+:root{
+  --merah:#8e0b0b; --merah2:#c1121f; --oranye:#f26b0f; --ink:#1c1f26; --muted:#6b7280;
+  --bg:#e9eaee; --card:#fff; --line:#e3e5ea; --hijau:#1a9a52;
+}
+*{box-sizing:border-box;margin:0}
+body{font-family:"Segoe UI",system-ui,-apple-system,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:12px 28px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{display:flex;align-items:center;gap:12px}
+.logo{width:40px;height:40px;border-radius:10px;background:var(--merah);color:#fff;display:grid;place-items:center;font-weight:700}
+.brand b{display:block;font-size:16px}.brand small{color:var(--muted)}
+.filters{display:flex;gap:14px;align-items:center}
+.filters label{display:flex;gap:6px;align-items:center;color:var(--muted)}
+select,.btn{font:inherit;padding:7px 12px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+.btn{background:var(--merah);color:#fff;border-color:var(--merah);cursor:pointer}
+.btn:hover{background:var(--merah2)}
+:focus-visible{outline:2px solid var(--oranye);outline-offset:2px}
+main{max-width:1440px;margin:0 auto;padding:24px 28px 40px;display:grid;gap:20px}
+.banner{border-radius:14px;padding:28px 32px;color:#fff;background:linear-gradient(105deg,#3a0606 0%,var(--merah) 55%,#b5340f 100%)}
+.banner h1{font-size:24px;font-weight:600;margin-bottom:8px}
+.banner p{opacity:.9;line-height:1.6}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;border-left:4px solid var(--merah)}
+.kpi.warn{border-left-color:var(--oranye)}
+.kpi span{color:var(--muted);font-weight:600}
+.kpi b{display:block;font-size:24px;margin:8px 0 4px;font-variant-numeric:tabular-nums}
+.kpi small{color:var(--muted)}
+.row{display:grid;gap:20px}
+.r2{grid-template-columns:1.4fr 1fr}
+.r3{grid-template-columns:repeat(3,1fr)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;min-width:0}
+.card h2{font-size:15px;margin-bottom:14px}
+.cv{position:relative;height:280px}
+.cv.sm{height:230px;width:230px;flex:none}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--muted);padding:0 24px;line-height:1.6}
+.aging{display:flex;gap:24px;align-items:center}
+#legAging{list-style:none;padding:0;flex:1}
+#legAging li{display:grid;grid-template-columns:14px 1fr auto auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+#legAging i{width:14px;height:14px;border-radius:50%}
+#legAging .v{font-weight:600;font-variant-numeric:tabular-nums}
+#legAging .p{color:var(--muted);width:48px;text-align:right}
+table{width:100%;border-collapse:collapse}
+th,td{padding:10px 12px;border-bottom:1px solid var(--line);text-align:left}
+th{color:var(--muted);font-weight:600;background:#f7f7f9}
+.n{text-align:right;font-variant-numeric:tabular-nums}
+tfoot td,tr.tot td{font-weight:700}
+.note ul{padding-left:18px;line-height:1.8;color:#3d4350}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(2,1fr)}.r2,.r3{grid-template-columns:1fr}}
+@media (max-width:640px){.top{flex-direction:column;align-items:flex-start}.aging{flex-direction:column}.kpis{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><span class="logo">ST</span><div><b>Semen Tonasa</b><small>Sistem Informasi Piutang</small></div></div>
+  <div class="filters">
+    <label>Bulan <select id="selBulan"></select></label>
+    <label>Tahun <select id="selTahun"></select></label>
+    <label class="btn">Muat file Excel<input type="file" id="fileInput" accept=".xlsx,.xls" multiple hidden></label>
+  </div>
+</header>
+
+<main>
+  <section class="banner">
+    <h1>Dashboard Sistem Informasi Piutang PT Semen Tonasa</h1>
+    <p id="periode"></p>
+    <p id="acuan"></p>
+  </section>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="row r2">
+    <article class="card"><h2>Tren Piutang Antarperiode</h2><div class="cv"><canvas id="cTren"></canvas><p class="empty" id="trenKosong"></p></div></article>
+    <article class="card"><h2>Aging Piutang</h2>
+      <div class="aging"><div class="cv sm"><canvas id="cAging"></canvas></div><ul id="legAging"></ul></div></article>
+  </section>
+
+  <section class="row r3">
+    <article class="card"><h2>Piutang per Posisi Dokumen</h2><div class="cv"><canvas id="cPosisi"></canvas></div></article>
+    <article class="card"><h2>Status Jatuh Tempo</h2><div class="cv"><canvas id="cJt"></canvas></div></article>
+    <article class="card"><h2>Piutang per Pelanggan</h2><div class="cv"><canvas id="cCust"></canvas></div></article>
+  </section>
+
+  <section class="card">
+    <h2>Ringkasan Aging</h2>
+    <table><thead><tr><th>Kelompok umur</th><th class="n">Invoice</th><th class="n">Nominal piutang</th><th class="n">Persentase</th></tr></thead><tbody id="tbl"></tbody></table>
+  </section>
+
+  <section class="card note"><h2>Catatan Data</h2><ul id="catatan"></ul></section>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+/* Dashboard Piutang PT Semen Tonasa - semua angka dihitung dari data Excel, tanpa data fiktif. */
+
+/* ===== Perhitungan (tidak menyentuh DOM) ===== */
+const KEL = ['1 - 30 hari', '31 - 60 hari', '61 - 90 hari', '91 - 120 hari', 'Diatas 120 hari'];
+const BULAN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const DAY = 864e5, MIN_VALID = Date.UTC(2000, 0, 1); // tanggal < tahun 2000 (mis. 30-03-1900) dianggap kosong
+
+const toDay = v => {
+  if (v == null || v === '') return null;
+  if (v instanceof Date) return isNaN(v) ? null : Date.UTC(v.getFullYear(), v.getMonth(), v.getDate());
+  const m = String(v).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  return m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) : null;
+};
+const num = v => (v == null || v === '' || isNaN(+v)) ? null : +v;
+const txt = v => (v == null ? '' : String(v).trim());
+
+function norm(rows) {
+  return rows.filter(r => txt(r['NO. INVOICE'])).map(r => {
+    const jt = toDay(r['Jatuh tempo pembayaran']);
+    return {
+      inv: txt(r['NO. INVOICE']), nilai: num(r['N I L A I']) || 0, posisi: txt(r['P O S I S I']) || 'Tidak diketahui',
+      waktu: toDay(r['W A K T U']), ar: num(r['AR AGING']), cust: txt(r['CUSTOMER_NAME']),
+      ostd: num(r['OSTD_AMOUNT']), kel: txt(r['KELOMPOK UMUR']), jt: jt != null && jt >= MIN_VALID ? jt : null
+    };
+  });
+}
+
+// Tanggal acuan = tanggal yang paling sering muncul dari (W A K T U + AR AGING hari)
+function tglAcuan(rows) {
+  const c = {};
+  rows.forEach(r => { if (r.waktu != null && r.ar != null) { const k = r.waktu + r.ar * DAY; c[k] = (c[k] || 0) + 1; } });
+  const best = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+  return best ? +best[0] : Math.max(...rows.map(r => r.waktu || 0));
+}
+
+const sum = (a, f) => a.reduce((s, x) => s + f(x), 0);
+function group(rows, keyFn) {
+  const g = {};
+  rows.forEach(r => { const k = keyFn(r); (g[k] = g[k] || { n: 0, v: 0 }); g[k].n++; g[k].v += r.ostd; });
+  return g;
+}
+
+function hitung(snap) {
+  const { rows, ref } = snap;
+  const ok = rows.filter(r => r.ostd > 0);
+  const total = sum(ok, r => r.ostd);
+  const aging = group(ok, r => r.kel || 'Tanpa kelompok umur');
+  const jt = { belum: { n: 0, v: 0 }, lewat: { n: 0, v: 0 }, tanpa: { n: 0, v: 0 } };
+  ok.forEach(r => { const k = r.jt == null ? 'tanpa' : (r.jt < ref ? 'lewat' : 'belum'); jt[k].n++; jt[k].v += r.ostd; });
+  const noOstd = rows.filter(r => !(r.ostd > 0));
+  return {
+    total, n: ok.length, aging, jt, posisi: group(ok, r => r.posisi), cust: group(ok, r => r.cust || 'Tanpa nama pelanggan'),
+    nCust: new Set(ok.map(r => r.cust)).size, jumlahBaris: rows.length,
+    noOstd: { n: noOstd.length, nilai: sum(noOstd, r => r.nilai) },
+    selisih: ok.filter(r => Math.round(r.nilai) !== Math.round(r.ostd)).length,
+    totalNilai: sum(rows, r => r.nilai)
+  };
+}
+
+const keyPeriode = ref => { const d = new Date(ref); return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0'); };
+const tglID = ms => { const d = new Date(ms); return d.getUTCDate() + ' ' + BULAN[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); };
+const rp = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+const ringkas = n => {
+  const a = Math.abs(n), f = (x, d) => x.toLocaleString('id-ID', { maximumFractionDigits: d });
+  return a >= 1e9 ? 'Rp ' + f(n / 1e9, 2) + ' M' : a >= 1e6 ? 'Rp ' + f(n / 1e6, 1) + ' jt' : rp(n);
+};
+const pct = x => (x * 100).toLocaleString('id-ID', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + '%';
+
+if (typeof module !== 'undefined') module.exports = { norm, tglAcuan, hitung, keyPeriode, KEL };
+
+/* ===== Tampilan ===== */
+if (typeof document !== 'undefined') {
+  const $ = id => document.getElementById(id);
+  const snaps = {};
+  const charts = {};
+  const WARNA = ['#fbc9a0', '#f9a76b', '#f58634', '#e85d04', '#8e0b0b'];
+
+  function tambah(rawRows, namaFile) {
+    const rows = norm(rawRows);
+    if (!rows.length) throw new Error('Kolom "NO. INVOICE" tidak ditemukan pada file ' + namaFile);
+    const ref = tglAcuan(rows);
+    const key = keyPeriode(ref);
+    snaps[key] = { rows, ref, file: namaFile };
+    return key;
+  }
+
+  function isiFilter(pilih) {
+    const keys = Object.keys(snaps).sort();
+    const thn = [...new Set(keys.map(k => k.slice(0, 4)))];
+    const [pt, pb] = pilih.split('-');
+    $('selTahun').innerHTML = thn.map(t => `<option ${t === pt ? 'selected' : ''}>${t}</option>`).join('');
+    $('selBulan').innerHTML = keys.filter(k => k.startsWith(pt)).map(k => `<option value="${k.slice(5)}" ${k.slice(5) === pb ? 'selected' : ''}>${BULAN[+k.slice(5) - 1]}</option>`).join('');
+  }
+
+  function mk(id, cfg) {
+    if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart($(id), cfg);
+  }
+  const tip = (extra, horiz) => ({
+    callbacks: {
+      label: c => {
+        const p = c.parsed, v = typeof p === 'number' ? p : (horiz ? p.x : p.y);
+        return ' ' + rp(v) + (extra && extra[c.dataIndex] ? ' (' + extra[c.dataIndex] + ')' : '');
+      }
+    }
+  });
+  const axisM = { ticks: { callback: v => (v / 1e9).toLocaleString('id-ID') + ' M' }, grid: { color: '#eef0f3' } };
+
+  function render(key) {
+    const s = snaps[key], h = hitung(s);
+    const namaP = BULAN[+key.slice(5) - 1] + ' ' + key.slice(0, 4);
+    $('periode').textContent = 'Periode data: ' + namaP;
+    $('acuan').textContent = 'Tanggal acuan umur piutang: ' + tglID(s.ref) + ' (dari kolom AR AGING)  |  Sumber: ' + s.file + '  |  Tanggal pembaruan: tidak tersedia di file';
+
+    const lewat = h.jt.lewat, top = Object.entries(h.cust).sort((a, b) => b[1].v - a[1].v);
+    $('kpis').innerHTML = [
+      ['Total Piutang', rp(h.total), 'Jumlah OSTD_AMOUNT seluruh invoice', ''],
+      ['Jumlah Invoice', h.n.toLocaleString('id-ID'), h.noOstd.n + ' baris tanpa OSTD tidak dihitung', ''],
+      ['Pelanggan dengan Piutang', h.nCust, 'Terbesar: ' + top[0][0] + ' (' + pct(top[0][1].v / h.total) + ')', ''],
+      ['Piutang Lewat Jatuh Tempo', rp(lewat.v), pct(lewat.v / h.total) + ' dari total, ' + lewat.n + ' invoice (kolom Jatuh tempo pembayaran)', 'warn']
+    ].map(k => `<div class="kpi ${k[3]}"><span>${k[0]}</span><b>${k[1]}</b><small>${k[2]}</small></div>`).join('');
+
+    // Aging
+    const ag = KEL.map(k => h.aging[k] || { n: 0, v: 0 });
+    mk('cAging', { type: 'doughnut', data: { labels: KEL, datasets: [{ data: ag.map(a => a.v), backgroundColor: WARNA, borderColor: '#fff', borderWidth: 2 }] },
+      options: { maintainAspectRatio: false, cutout: '45%', plugins: { legend: { display: false }, tooltip: tip(ag.map(a => a.n + ' invoice')) } } });
+    $('legAging').innerHTML = KEL.map((k, i) => `<li><i style="background:${WARNA[i]}"></i><span>${k}</span><span class="v">${ringkas(ag[i].v)}</span><span class="p">${pct(ag[i].v / h.total)}</span></li>`).join('');
+    $('tbl').innerHTML = KEL.map((k, i) => `<tr><td>${k}</td><td class="n">${ag[i].n}</td><td class="n">${rp(ag[i].v)}</td><td class="n">${pct(ag[i].v / h.total)}</td></tr>`).join('')
+      + `<tr class="tot"><td>Total</td><td class="n">${h.n}</td><td class="n">${rp(h.total)}</td><td class="n">100,0%</td></tr>`;
+
+    // Posisi
+    const ps = Object.entries(h.posisi).sort((a, b) => b[1].v - a[1].v);
+    mk('cPosisi', { type: 'bar', data: { labels: ps.map(p => p[0]), datasets: [{ data: ps.map(p => p[1].v), backgroundColor: '#f26b0f', borderRadius: 4 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip(ps.map(p => p[1].n + ' invoice'), true) }, scales: { x: axisM } } });
+
+    // Jatuh tempo
+    const jl = [['Belum jatuh tempo', h.jt.belum, '#1a9a52'], ['Sudah lewat jatuh tempo', h.jt.lewat, '#c1121f'], ['Belum ada tanggal jatuh tempo', h.jt.tanpa, '#b8bcc6']];
+    mk('cJt', { type: 'doughnut', data: { labels: jl.map(j => j[0]), datasets: [{ data: jl.map(j => j[1].v), backgroundColor: jl.map(j => j[2]), borderColor: '#fff', borderWidth: 2 }] },
+      options: { maintainAspectRatio: false, cutout: '55%', plugins: { legend: { position: 'bottom' }, tooltip: tip(jl.map(j => j[1].n + ' invoice')) } } });
+
+    // Pelanggan
+    mk('cCust', { type: 'bar', data: { labels: top.slice(0, 8).map(t => t[0]), datasets: [{ data: top.slice(0, 8).map(t => t[1].v), backgroundColor: '#8e0b0b', borderRadius: 4 }] },
+      options: { indexAxis: 'y', maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: tip(top.slice(0, 8).map(t => t[1].n + ' invoice'), true) }, scales: { x: axisM, y: { ticks: { callback(v) { const l = this.getLabelForValue(v); return l.length > 18 ? l.slice(0, 17) + '…' : l; } } } } } });
+
+    // Tren (hanya jika >= 2 periode dimuat)
+    const keys = Object.keys(snaps).sort();
+    $('trenKosong').textContent = keys.length < 2 ? 'Tren muncul setelah minimal 2 periode dimuat. Saat ini hanya tersedia ' + namaP + '. Gunakan "Muat file Excel" untuk menambah bulan lain.' : '';
+    if (keys.length >= 2) {
+      const hs = keys.map(k => hitung(snaps[k]));
+      mk('cTren', { type: 'line', data: { labels: keys.map(k => BULAN[+k.slice(5) - 1].slice(0, 3) + ' ' + k.slice(2, 4)), datasets: [
+        { label: 'Total piutang', data: hs.map(x => x.total), borderColor: '#1c1f26', tension: .3 },
+        { label: 'Diatas 120 hari', data: hs.map(x => (x.aging['Diatas 120 hari'] || { v: 0 }).v), borderColor: '#c1121f', tension: .3 }] },
+        options: { maintainAspectRatio: false, plugins: { tooltip: tip() }, scales: { y: axisM } } });
+    } else if (charts.cTren) { charts.cTren.destroy(); delete charts.cTren; }
+
+    $('catatan').innerHTML = [
+      `Total dihitung dari OSTD_AMOUNT. ${h.noOstd.n} baris tidak memiliki OSTD/pelanggan (nilai invoice ${rp(h.noOstd.nilai)}) sehingga tidak masuk KPI dan grafik.`,
+      `Total kolom N I L A I seluruh ${h.jumlahBaris} baris: ${rp(h.totalNilai)}. ${h.selisih} invoice ber-OSTD memiliki nilai berbeda dari N I L A I.`,
+      `Lewat jatuh tempo = Jatuh tempo pembayaran sebelum ${tglID(s.ref)}. ${h.jt.tanpa.n} invoice belum punya tanggal jatuh tempo valid (kosong atau 1900) dan ditampilkan terpisah.`,
+      'Kelompok aging memakai kolom KELOMPOK UMUR dari Excel (umur sejak invoice), sehingga tidak sama dengan keterlambatan pembayaran.',
+      'Tren antarperiode membandingkan snapshot tiap bulan dengan definisi yang sama; snapshot tidak dijumlahkan.'
+    ].map(t => `<li>${t}</li>`).join('');
+  }
+
+  const pilihan = () => $('selTahun').value + '-' + $('selBulan').value;
+  $('selTahun').onchange = () => { const k = Object.keys(snaps).sort().filter(x => x.startsWith($('selTahun').value)).pop(); isiFilter(k); render(k); };
+  $('selBulan').onchange = () => render(pilihan());
+
+  $('fileInput').onchange = async e => {
+    let last = null;
+    try {
+      for (const f of e.target.files) {
+        const wb = XLSX.read(await f.arrayBuffer(), { type: 'array', cellDates: true });
+        let rows = null;
+        for (const n of wb.SheetNames) {
+          const r = XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: null });
+          if (r.length && 'NO. INVOICE' in r[0]) { rows = r; break; }
+        }
+        if (!rows) throw new Error('Sheet dengan kolom "NO. INVOICE" tidak ditemukan di ' + f.name);
+        last = tambah(rows, f.name);
+      }
+      if (last) { isiFilter(last); render(last); }
+    } catch (err) { alert('Gagal membaca file: ' + err.message); }
+    e.target.value = '';
+  };
+
+  if (!window.DATA_AWAL) $('periode').textContent = 'Belum ada data. Klik "Muat file Excel" lalu pilih file piutang bulanan.';
+  else { const k = tambah(window.DATA_AWAL.rows, window.DATA_AWAL.file); isiFilter(k); render(k); }
+}
+</script>
+</body>
+</html>
